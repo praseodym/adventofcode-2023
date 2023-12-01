@@ -10,10 +10,10 @@ fn run(input: &'static str) -> (usize, usize) {
         let mut first = None;
         let mut last = None;
         for char in line.chars() {
-            if char.is_digit(10) {
+            if char.is_ascii_digit() {
                 last = char.to_digit(10);
                 if first.is_none() {
-                    first = last.clone();
+                    first = last;
                 }
             }
         }
@@ -29,7 +29,7 @@ fn run(input: &'static str) -> (usize, usize) {
         for i in 0..line.len() {
             let char = line.chars().nth(i).unwrap();
             let remaining = &line[i..];
-            last = if char.is_digit(10) {
+            last = if char.is_ascii_digit() {
                 char.to_digit(10)
             } else if remaining.starts_with("one") {
                 Some(1)
@@ -53,7 +53,7 @@ fn run(input: &'static str) -> (usize, usize) {
                 last
             };
             if first.is_none() && last.is_some() {
-                first = last.clone();
+                first = last;
             }
         }
         part2_answer += (first.unwrap() * 10 + last.unwrap()) as usize;
