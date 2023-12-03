@@ -6,6 +6,7 @@ fn main() {
     println!("part 2 answer: {}", part2_answer);
 }
 
+const N: usize = 141;
 #[derive(Debug, Copy, Clone)]
 struct Gear {
     count: usize,
@@ -13,8 +14,8 @@ struct Gear {
 }
 
 fn run(input: &'static str) -> (usize, usize) {
-    let mut symbols = [[false; 140]; 140];
-    let mut gears: [[Option<Gear>; 140]; 140] = [[None; 140]; 140];
+    let mut symbols = [[false; N]; N];
+    let mut gears: [[Option<Gear>; N]; N] = [[None; N]; N];
     for (i, line) in input.lines().enumerate() {
         for (j, c) in line.chars().enumerate() {
             symbols[i][j] = !(c == '.' || c.is_ascii_digit());
@@ -31,11 +32,10 @@ fn run(input: &'static str) -> (usize, usize) {
             let d = cap[0].parse::<usize>().unwrap();
             let start = cap.get(0).unwrap().start();
             let end = cap.get(0).unwrap().end();
-            let is_adjacent = is_adjacent_to_symbol(&symbols, i, start, end);
-            if is_adjacent {
+            if is_adjacent_to_symbol(&symbols, i, start, end) {
                 part1_answer += d;
             }
-            check_gear(&mut gears, i, start, end, d);
+            update_gears(&mut gears, i, start, end, d);
         }
     }
 
@@ -53,108 +53,31 @@ fn run(input: &'static str) -> (usize, usize) {
     (part1_answer, part2_answer)
 }
 
-fn is_adjacent_to_symbol(symbols: &[[bool; 140]], i: usize, start: usize, end: usize) -> bool {
+fn is_adjacent_to_symbol(symbols: &[[bool; N]], i: usize, start: usize, end: usize) -> bool {
     let mut adjacent = false;
     for j in start..end {
         // check if i,j is adjacent to a symbol
-        if i > 0 {
-            adjacent |= symbols[i - 1][j];
-        }
-        if i < 139 {
-            adjacent |= symbols[i + 1][j];
-        }
-        if j > 0 {
-            adjacent |= symbols[i][j - 1];
-        }
-        if j < 139 {
-            adjacent |= symbols[i][j + 1];
-        }
-        if i > 0 && j > 0 {
-            adjacent |= symbols[i - 1][j - 1];
-        }
-        if j < 139 && i > 0 {
-            adjacent |= symbols[i - 1][j + 1];
-        }
-        if i < 139 && j > 0 {
-            adjacent |= symbols[i + 1][j - 1];
-        }
-        if i < 139 && j < 139 {
-            adjacent |= symbols[i + 1][j + 1];
+        for a in -1isize..=1 {
+            for b in -1isize..=1 {
+                adjacent |= symbols[i.saturating_add_signed(a)][j.saturating_add_signed(b)];
+            }
         }
     }
     adjacent
 }
 
-fn check_gear(
-    gears: &mut [[Option<Gear>; 140]; 140],
-    i: usize,
-    start: usize,
-    end: usize,
-    d: usize,
-) {
+fn update_gears(gears: &mut [[Option<Gear>; N]], i: usize, start: usize, end: usize, d: usize) {
     for j in start..end {
-        if i > 0 {
-            if let Some(mut gear) = gears[i - 1][j] {
-                gear.count += 1;
-                gear.ratio *= d;
-                gears[i - 1][j] = Some(gear);
-                break;
-            }
-        }
-        if i < 139 {
-            if let Some(mut gear) = gears[i + 1][j] {
-                gear.count += 1;
-                gear.ratio *= d;
-                gears[i + 1][j] = Some(gear);
-                break;
-            }
-        }
-        if j > 0 {
-            if let Some(mut gear) = gears[i][j - 1] {
-                gear.count += 1;
-                gear.ratio *= d;
-                gears[i][j - 1] = Some(gear);
-                break;
-            }
-        }
-        if j < 139 {
-            if let Some(mut gear) = gears[i][j + 1] {
-                gear.count += 1;
-                gear.ratio *= d;
-                gears[i][j + 1] = Some(gear);
-                break;
-            }
-        }
-        if i > 0 && j > 0 {
-            if let Some(mut gear) = gears[i - 1][j - 1] {
-                gear.count += 1;
-                gear.ratio *= d;
-                gears[i - 1][j - 1] = Some(gear);
-                break;
-            }
-        }
-        if j < 139 && i > 0 {
-            if let Some(mut gear) = gears[i - 1][j + 1] {
-                gear.count += 1;
-                gear.ratio *= d;
-                gears[i - 1][j + 1] = Some(gear);
-                break;
-            }
-        }
-        if i < 139 && j > 0 {
-            if let Some(mut gear) = gears[i + 1][j - 1] {
-                gear.count += 1;
-                gear.ratio *= d;
-                gears[i + 1][j - 1] = Some(gear);
-                break;
-            }
-        }
-        if i < 139 && j < 139 {
-            if let Some(mut gear) = gears[i + 1][j + 1] {
-                gear.count += 1;
-                gear.ratio *= d;
-                gears[i + 1][j + 1] = Some(gear);
-                break;
+        for a in -1isize..=1 {
+            for b in -1isize..=1 {
+                let x = i.saturating_add_signed(a);
+                let y = j.saturating_add_signed(b);
+                if let Some(mut gear) = gears[x][y] {
+                    gear.count += 1;
+                    gear.ratio *= d;
+                    gears[x][y] = Some(gear);
+                    return;
+                }
             }
         }
     }
