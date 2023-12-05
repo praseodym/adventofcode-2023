@@ -1,4 +1,4 @@
-use std::cmp;
+use rayon::prelude::*;
 
 fn main() {
     let (part1_answer, part2_answer) = run(include_str!("../input"));
@@ -42,20 +42,18 @@ fn run(input: &'static str) -> (usize, usize) {
         }
     }
 
-    let mut part1_answer = usize::MAX;
-    for seed in seeds.iter() {
-        let location = map_seed_to_location(&maps, *seed);
-        part1_answer = cmp::min(part1_answer, location);
-    }
+    let part1_answer = seeds
+        .par_iter()
+        .map(|seed| map_seed_to_location(&maps, *seed))
+        .min()
+        .unwrap();
+    let part2_answer = seeds_range
+        .par_iter()
+        .flat_map(|(a, r)| *a..*a + *r)
+        .map(|seed| map_seed_to_location(&maps, seed))
+        .min()
+        .unwrap();
 
-    // Inefficient but works
-    let mut part2_answer = usize::MAX;
-    for (a, r) in seeds_range.iter() {
-        for seed in *a..*a + *r {
-            let location = map_seed_to_location(&maps, seed);
-            part2_answer = cmp::min(part2_answer, location);
-        }
-    }
     (part1_answer, part2_answer)
 }
 
