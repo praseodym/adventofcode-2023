@@ -1,35 +1,41 @@
 use std::str::Lines;
 
 fn main() {
-    let (part1_answer, _part2_answer) = run(include_str!("../input"));
+    let (part1_answer, part2_answer) = run(include_str!("../input"));
     println!("part 1 answer: {}", part1_answer);
-    // println!("part 2 answer: {}", part2_answer);
+    println!("part 2 answer: {}", part2_answer);
 }
 
 fn run(input: &'static str) -> (usize, usize) {
     let mut l = input.lines();
-    let time: Vec<usize> = parse_line(&mut l);
-    let distance: Vec<usize> = parse_line(&mut l);
+    let time = parse_line1(&mut l);
+    let distance = parse_line1(&mut l);
 
     let mut part1_answer = 1;
     for i in 0..time.len() {
-        let t = time[i];
-        let d = distance[i];
-        let mut count = 0;
-        for j in 0..t {
-            let x = (t - j) * j;
-            if x > d {
-                count += 1;
-            }
-        }
-        part1_answer *= count;
+        part1_answer *= calculate(time[i], distance[i]);
     }
 
-    let mut part2_answer = 0;
+    let mut l = input.lines();
+    let time = parse_line2(&mut l);
+    let distance = parse_line2(&mut l);
+    let part2_answer = calculate(time, distance);
+
     (part1_answer, part2_answer)
 }
 
-fn parse_line(l: &mut Lines) -> Vec<usize> {
+fn calculate(time: usize, distance: usize) -> usize {
+    let mut count = 0;
+    for i in 0..time {
+        let x = (time - i) * i;
+        if x > distance {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn parse_line1(l: &mut Lines) -> Vec<usize> {
     l.next()
         .unwrap()
         .split(':')
@@ -40,6 +46,16 @@ fn parse_line(l: &mut Lines) -> Vec<usize> {
         .map(|x| x.parse::<usize>().unwrap())
         .collect()
 }
+fn parse_line2(l: &mut Lines) -> usize {
+    let s = l
+        .next()
+        .unwrap()
+        .split(':')
+        .last()
+        .unwrap()
+        .replace(' ', "");
+    s.parse::<usize>().unwrap()
+}
 
 #[cfg(test)]
 mod tests {
@@ -47,15 +63,15 @@ mod tests {
 
     #[test]
     fn test_input_own() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input"));
+        let (part1_answer, part2_answer) = run(include_str!("../input"));
         assert_eq!(part1_answer, 625968);
-        // assert_eq!(part2_answer, 0);
+        assert_eq!(part2_answer, 43663323);
     }
 
     #[test]
     fn test_input_example() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input-example"));
+        let (part1_answer, part2_answer) = run(include_str!("../input-example"));
         assert_eq!(part1_answer, 288);
-        // assert_eq!(part2_answer, 0);
+        assert_eq!(part2_answer, 71503);
     }
 }
