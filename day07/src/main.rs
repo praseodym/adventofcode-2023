@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::iter::Iterator;
 
 fn main() {
     let (part1_answer, part2_answer) = run(include_str!("../input"));
@@ -9,102 +10,13 @@ fn main() {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 struct Hand {
-    card: Vec<Card>,
+    card: Vec<char>,
     bid: usize,
-    hand_type: HandType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-enum Card {
-    Joker,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    Ten,
-    Jack,
-    Queen,
-    King,
-    Ace,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-enum HandType {
-    None,
-    HighCard,
-    OnePair,
-    TwoPair,
-    ThreeOfAKind,
-    FullHouse,
-    FourOfAKind,
-    FiveOfAKind,
-}
-
-impl Card {
-    fn from_char(c: char, joker: bool) -> Card {
-        if joker && c == 'J' {
-            return Card::Joker;
-        }
-        match c {
-            '2' => Card::Two,
-            '3' => Card::Three,
-            '4' => Card::Four,
-            '5' => Card::Five,
-            '6' => Card::Six,
-            '7' => Card::Seven,
-            '8' => Card::Eight,
-            '9' => Card::Nine,
-            'T' => Card::Ten,
-            'J' => Card::Jack,
-            'Q' => Card::Queen,
-            'K' => Card::King,
-            'A' => Card::Ace,
-            _ => panic!("invalid card"),
-        }
-    }
-
-    fn from_str(s: &str, joker: bool) -> Vec<Card> {
-        s.chars().map(|c| Card::from_char(c, joker)).collect()
-    }
-}
-
-impl HandType {
-    fn get_type(cards: &[Card]) -> HandType {
-        let mut card_count = cards.iter().fold(HashMap::new(), |mut counts, card| {
-            *counts.entry(card.clone()).or_insert(0) += 1;
-            counts
-        });
-        let joker_count = card_count.remove(&Card::Joker).unwrap_or(0);
-        let mut card_count: Vec<usize> = card_count.into_iter().map(|x| x.1).collect();
-        card_count.sort_by(|a, b| b.cmp(a));
-        match (joker_count, card_count.as_slice()) {
-            (0, [5]) => HandType::FiveOfAKind,
-            (1, [4]) => HandType::FiveOfAKind,
-            (2, [3]) => HandType::FiveOfAKind,
-            (3, [2]) => HandType::FiveOfAKind,
-            (4, [1]) => HandType::FiveOfAKind,
-            (5, []) => HandType::FiveOfAKind,
-            (0, [4, 1]) => HandType::FourOfAKind,
-            (1, [3, 1]) => HandType::FourOfAKind,
-            (2, [2, 1]) => HandType::FourOfAKind,
-            (3, [1, 1]) => HandType::FourOfAKind,
-            (0, [3, 2]) => HandType::FullHouse,
-            (1, [2, 2]) => HandType::FullHouse,
-            (0, [3, 1, 1]) => HandType::ThreeOfAKind,
-            (1, [2, 1, 1]) => HandType::ThreeOfAKind,
-            (2, [1, 1, 1]) => HandType::ThreeOfAKind,
-            (0, [2, 2, 1]) => HandType::TwoPair,
-            (0, [2, 1, 1, 1]) => HandType::OnePair,
-            (1, [1, 1, 1, 1]) => HandType::OnePair,
-            (0, [1, 1, 1, 1, 1]) => HandType::HighCard,
-            _ => HandType::None,
-        }
-    }
-}
+const CARD_ORDER: &[char] = &[
+    'X', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
+];
 
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -114,17 +26,39 @@ impl PartialOrd for Hand {
 
 impl Ord for Hand {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        if self.hand_type != other.hand_type {
-            self.hand_type.cmp(&other.hand_type)
+        let a = calculate_hand_type(&self.card).cmp(&calculate_hand_type(&other.card));
+        if a != Ordering::Equal {
+            a
         } else {
             for i in 0..self.card.len() {
-                if self.card[i] != other.card[i] {
-                    return self.card[i].cmp(&other.card[i]);
+                let a = self.card[i];
+                let b = other.card[i];
+                if a != b {
+                    return CARD_ORDER
+                        .iter()
+                        .position(|x| *x == a)
+                        .unwrap()
+                        .cmp(&CARD_ORDER.iter().position(|x| *x == b).unwrap());
                 }
             }
             Ordering::Equal
         }
     }
+}
+
+fn calculate_hand_type(cards: &[char]) -> Vec<usize> {
+    let mut card_count = cards.iter().fold(HashMap::new(), |mut counts, card| {
+        *counts.entry(*card).or_insert(0) += 1;
+        counts
+    });
+    let joker_count = card_count.remove(&'X').unwrap_or(0);
+    if joker_count == 5 {
+        return vec![5];
+    }
+    let mut card_count: Vec<usize> = card_count.into_iter().map(|x| x.1).collect();
+    card_count.sort_by(|a, b| b.cmp(a));
+    card_count[0] += joker_count;
+    card_count
 }
 
 fn run(input: &'static str) -> (usize, usize) {
@@ -138,15 +72,14 @@ fn calculate_winnings(input: &str, joker: bool) -> usize {
         .lines()
         .map(|line| {
             let mut s = line.split_ascii_whitespace();
-            let card = s.next().unwrap().to_string();
-            let card = Card::from_str(&card, joker);
+            let card = s
+                .next()
+                .unwrap()
+                .chars()
+                .map(|c| if joker && c == 'J' { 'X' } else { c })
+                .collect::<Vec<char>>();
             let bid = s.next().unwrap().parse::<usize>().unwrap();
-            let hand_type = HandType::get_type(&card);
-            Hand {
-                card,
-                bid,
-                hand_type,
-            }
+            Hand { card, bid }
         })
         .collect();
 
