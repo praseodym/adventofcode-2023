@@ -2,9 +2,9 @@ use std::cmp;
 use std::collections::VecDeque;
 
 fn main() {
-    let (part1_answer, _part2_answer) = run(include_str!("../input"));
+    let (part1_answer, part2_answer) = run(include_str!("../input"));
     println!("part 1 answer: {}", part1_answer);
-    // println!("part 2 answer: {}", part2_answer);
+    println!("part 2 answer: {}", part2_answer);
 }
 
 fn run(input: &'static str) -> (usize, usize) {
@@ -73,6 +73,20 @@ fn run(input: &'static str) -> (usize, usize) {
     }
 
     let mut part2_answer = 0;
+    for y in 0..max_y {
+        let mut num_north_facing = 0;
+        for x in 0..max_x {
+            if visited[y][x] && ['|', 'L', 'J'].contains(&grid[y][x])
+                || (y != 0 && grid[y][x] == 'S' && ['|', '7', 'F'].contains(&grid[y - 1][x]))
+            {
+                num_north_facing += 1;
+            }
+            if !visited[y][x] && num_north_facing % 2 == 1 {
+                part2_answer += 1;
+            }
+        }
+    }
+
     (part1_answer, part2_answer)
 }
 
@@ -82,22 +96,44 @@ mod tests {
 
     #[test]
     fn test_input_own() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input"));
+        let (part1_answer, part2_answer) = run(include_str!("../input"));
         assert_eq!(part1_answer, 6701);
-        // assert_eq!(part2_answer, 0);
+        assert_eq!(part2_answer, 303);
     }
 
     #[test]
     fn test_input_example1() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input-example1"));
+        let (part1_answer, _) = run(include_str!("../input-example1"));
         assert_eq!(part1_answer, 4);
-        // assert_eq!(part2_answer, 0);
     }
 
     #[test]
     fn test_input_example2() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input-example2"));
+        let (part1_answer, _) = run(include_str!("../input-example2"));
         assert_eq!(part1_answer, 8);
-        // assert_eq!(part2_answer, 0);
+    }
+
+    #[test]
+    fn test_input_example3() {
+        let (_, part2_answer) = run(include_str!("../input-example3"));
+        assert_eq!(part2_answer, 4);
+    }
+
+    #[test]
+    fn test_input_example4() {
+        let (_, part2_answer) = run(include_str!("../input-example4"));
+        assert_eq!(part2_answer, 4);
+    }
+
+    #[test]
+    fn test_input_example5() {
+        let (_, part2_answer) = run(include_str!("../input-example5"));
+        assert_eq!(part2_answer, 8);
+    }
+
+    #[test]
+    fn test_input_example6() {
+        let (_, part2_answer) = run(include_str!("../input-example6"));
+        assert_eq!(part2_answer, 10);
     }
 }
