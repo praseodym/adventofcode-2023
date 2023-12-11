@@ -1,4 +1,3 @@
-use std::cmp;
 use std::collections::HashSet;
 
 fn main() {
@@ -8,80 +7,46 @@ fn main() {
 }
 
 fn run(input: &'static str) -> (usize, usize) {
-    let (grid, empty_rows, empty_columns) = parse_input(input);
+    let (galaxies, empty_x, empty_y) = parse_input(input);
 
-    let part1_answer = sum_of_distances(&grid, &empty_rows, &empty_columns, 1);
-    let part2_answer = sum_of_distances(&grid, &empty_rows, &empty_columns, 1000000 - 1);
+    let part1_answer = sum_of_distances(&galaxies, &empty_x, &empty_y, 2);
+    let part2_answer = sum_of_distances(&galaxies, &empty_x, &empty_y, 1000000);
 
     (part1_answer, part2_answer)
 }
 
-fn parse_input(input: &str) -> (Vec<Vec<char>>, Vec<usize>, Vec<usize>) {
-    let grid = input
+fn parse_input(input: &str) -> (Vec<(usize, usize)>, Vec<usize>, Vec<usize>) {
+    let galaxies = input
         .lines()
-        .map(|line| line.chars().collect::<Vec<_>>())
-        .collect::<Vec<_>>();
-    let max_x = grid[0].len();
-    let _max_y = grid.len();
-
-    let empty_rows = grid
-        .iter()
         .enumerate()
-        .flat_map(|(y, row)| {
-            for c in row.iter() {
-                if *c == '#' {
-                    return None;
-                }
-            }
-            Some(y)
+        .flat_map(|(y, line)| {
+            line.chars()
+                .enumerate()
+                .filter(|(_, c)| *c == '#')
+                .map(move |(x, _)| (x, y))
         })
         .collect::<Vec<_>>();
-    let empty_columns = (0..max_x)
-        .flat_map(|x| {
-            for row in grid.iter() {
-                if row[x] == '#' {
-                    return None;
-                }
-            }
-            Some(x)
-        })
-        .collect::<Vec<_>>();
-    (grid, empty_rows, empty_columns)
+    let all_x = galaxies.iter().map(|&(x, _)| x).collect::<HashSet<_>>();
+    let all_y = galaxies.iter().map(|&(_, y)| y).collect::<HashSet<_>>();
+    let empty_x = (0..*all_x.iter().max().unwrap()).filter(|&x| !all_x.contains(&x)).collect();
+    let empty_y = (0..*all_y.iter().max().unwrap()).filter(|&y| !all_y.contains(&y)).collect();
+    (galaxies, empty_x, empty_y)
 }
 
 fn sum_of_distances(
-    grid: &[Vec<char>],
-    empty_rows: &[usize],
-    empty_columns: &[usize],
+    galaxies: &[(usize, usize)],
+    empty_x: &[usize],
+    empty_y: &[usize],
     expansion: usize,
 ) -> usize {
-    let mut galaxies = vec![];
-    for (y, row) in grid.iter().enumerate() {
-        for (x, c) in row.iter().enumerate() {
-            if *c == '#' {
-                let dx = empty_columns.iter().filter(|&&ex| ex < x).count() * expansion;
-                let dy = empty_rows.iter().filter(|&&ey| ey < y).count() * expansion;
-                galaxies.push(((x + dx) as isize, (y + dy) as isize));
-            }
-        }
-    }
-
-    let mut sum = 0;
-    let mut seen = HashSet::new();
-    for (i, (x1, y1)) in galaxies.iter().enumerate() {
-        for (j, (x2, y2)) in galaxies.iter().enumerate() {
-            let a = cmp::min(i, j);
-            let b = cmp::max(i, j);
-            if seen.contains(&(a, b)) {
-                continue;
-            }
-            seen.insert((a, b));
-
-            // manhattan distance between (x1, y1) and (x2, y2)
-            sum += ((x1 - x2).abs() + (y1 - y2).abs()) as usize;
-        }
-    }
-    sum
+    let expansion = expansion - 1;
+    galaxies.iter().flat_map(|g| std::iter::repeat(g).zip(galaxies)).map(|((x1, y1), (x2, y2))| {
+        let x1 = x1 + empty_x.iter().filter(|&&ex| ex < *x1).count() * expansion;
+        let x2 = x2 + empty_x.iter().filter(|&&ex| ex < *x2).count() * expansion;
+        let y1 = y1 + empty_y.iter().filter(|&&ey| ey < *y1).count() * expansion;
+        let y2 = y2 + empty_y.iter().filter(|&&ey| ey < *y2).count() * expansion;
+        x1.abs_diff(x2) + y1.abs_diff(y2)
+    }).sum::<usize>() / 2
 }
 
 #[cfg(test)]
@@ -103,12 +68,12 @@ mod tests {
 
     #[test]
     fn test_input_example_expanded() {
-        let (grid, empty_rows, empty_columns) = parse_input(include_str!("../input-example"));
+        let (galaxies, empty_x, empty_y) = parse_input(include_str!("../input-example"));
 
-        let sum = sum_of_distances(&grid, &empty_rows, &empty_columns, 10 - 1);
+        let sum = sum_of_distances(&galaxies, &empty_x, &empty_y, 10);
         assert_eq!(sum, 1030);
 
-        let sum = sum_of_distances(&grid, &empty_rows, &empty_columns, 100 - 1);
+        let sum = sum_of_distances(&galaxies, &empty_x, &empty_y, 100);
         assert_eq!(sum, 8410);
     }
 }
