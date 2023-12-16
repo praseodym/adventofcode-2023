@@ -7,7 +7,10 @@ fn main() {
     println!("part 2 answer: {}", part2_answer);
 }
 
-const N: usize = 111;
+const N: usize = 112;
+type Position = (usize, usize);
+type Direction = (isize, isize);
+type Beam = (Position, Direction);
 
 fn run(input: &'static str) -> (usize, usize) {
     let mut contraption = [[' '; N]; N];
@@ -18,48 +21,35 @@ fn run(input: &'static str) -> (usize, usize) {
         }
         len = y + 1;
     }
+    assert!(len + 2 <= N, "N needs to be at least {}", len + 2);
 
     let initial = ((1, 1), (1, 0));
-    let part1_answer = simulate(&contraption, len, initial);
+    let part1_answer = simulate(&contraption, initial);
 
     let mut part2_answer = 0;
-    for x in 0..=len {
-        part2_answer = cmp::max(part2_answer, simulate(&contraption, len, ((x, 1), (0, 1))));
-        part2_answer = cmp::max(
-            part2_answer,
-            simulate(&contraption, len, ((x, len), (0, -1))),
-        );
+    for x in 1..=len {
+        part2_answer = cmp::max(part2_answer, simulate(&contraption, ((x, 1), (0, 1))));
+        part2_answer = cmp::max(part2_answer, simulate(&contraption, ((x, len), (0, -1))));
     }
-    for y in 0..=len {
-        part2_answer = cmp::max(part2_answer, simulate(&contraption, len, ((1, y), (1, 0))));
-        part2_answer = cmp::max(
-            part2_answer,
-            simulate(&contraption, len, ((len, y), (-1, 0))),
-        );
+    for y in 1..=len {
+        part2_answer = cmp::max(part2_answer, simulate(&contraption, ((1, y), (1, 0))));
+        part2_answer = cmp::max(part2_answer, simulate(&contraption, ((len, y), (-1, 0))));
     }
 
     (part1_answer, part2_answer)
 }
 
-fn simulate(
-    contraption: &[[char; 111]; 111],
-    len: usize,
-    initial: ((usize, usize), (isize, isize)),
-) -> usize {
-    let mut queue: Vec<((usize, usize), (isize, isize))> = Vec::new();
-    let mut seen: HashSet<((usize, usize), (isize, isize))> = HashSet::new();
-    let mut energized: HashSet<(usize, usize)> = HashSet::new();
+fn simulate(contraption: &[[char; N]; N], initial: Beam) -> usize {
+    let mut queue: Vec<Beam> = Vec::new();
+    let mut seen: HashSet<Beam> = HashSet::new();
+    let mut energized: HashSet<Position> = HashSet::new();
     queue.push(initial);
     while let Some(((x, y), (dx, dy))) = queue.pop() {
-        if x == 0 || y == 0 || x > len || y > len {
-            continue;
-        }
         if !seen.insert(((x, y), (dx, dy))) {
             continue;
         }
         match contraption[y][x] {
             ' ' => {
-                println!("hit empty tile at ({}, {})", x, y);
                 continue;
             }
             '.' => {
