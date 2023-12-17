@@ -2,18 +2,21 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 
 fn main() {
-    let (part1_answer, _part2_answer) = run(include_str!("../input"));
+    let (part1_answer, part2_answer) = run(include_str!("../input"));
     println!("part 1 answer: {}", part1_answer);
-    // println!("part 2 answer: {}", part2_answer);
+    println!("part 2 answer: {}", part2_answer);
 }
 
 const N: usize = 141;
 
+type Position = (usize, usize);
+type Direction = (isize, isize);
+
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 struct State {
     heat_loss: usize,
-    pos: (usize, usize),
-    direction: (isize, isize),
+    pos: Position,
+    direction: Direction,
 }
 
 fn run(input: &'static str) -> (usize, usize) {
@@ -26,9 +29,14 @@ fn run(input: &'static str) -> (usize, usize) {
         len = y;
     });
 
-    let mut part1_answer = 0;
+    let part1_answer = shortest_path(&mut grid, len, 1, 3);
+    let part2_answer = shortest_path(&mut grid, len, 4, 10);
+    (part1_answer, part2_answer)
+}
+
+fn shortest_path(grid: &mut [[u8; N]; N], len: usize, min_steps: usize, max_steps: usize) -> usize {
     let mut queue = BinaryHeap::new();
-    let mut cost: HashMap<((usize, usize), (isize, isize)), usize> = HashMap::new();
+    let mut cost: HashMap<(Position, Direction), usize> = HashMap::new();
     queue.push(State {
         heat_loss: 0,
         pos: (0, 0),
@@ -39,8 +47,7 @@ fn run(input: &'static str) -> (usize, usize) {
     while let Some(state) = queue.pop() {
         let (x, y) = state.pos;
         if x == len && y == len {
-            part1_answer = state.heat_loss;
-            break;
+            return state.heat_loss;
         }
         if let Some(&c) = cost.get(&((x, y), state.direction)) {
             if c < state.heat_loss {
@@ -53,7 +60,7 @@ fn run(input: &'static str) -> (usize, usize) {
                 continue;
             }
             let mut heat_loss = state.heat_loss;
-            for i in 1..=3 {
+            for i in 1..=max_steps as isize {
                 let next_x = x.checked_add_signed(dx * i);
                 let next_y = y.checked_add_signed(dy * i);
                 if next_x.is_none() || next_y.is_none() {
@@ -65,6 +72,11 @@ fn run(input: &'static str) -> (usize, usize) {
                 }
 
                 heat_loss += grid[next_y][next_x] as usize;
+
+                if i < min_steps as isize {
+                    continue;
+                }
+
                 let k = ((next_x, next_y), (dx, dy));
                 if &heat_loss < cost.get(&k).unwrap_or(&usize::MAX) {
                     cost.insert(k, heat_loss);
@@ -78,19 +90,12 @@ fn run(input: &'static str) -> (usize, usize) {
             }
         }
     }
-
-    let part2_answer = 0;
-    (part1_answer, part2_answer)
+    usize::MAX
 }
 
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
-        other
-            .heat_loss
-            .cmp(&self.heat_loss)
-            .then_with(|| self.pos.1.cmp(&other.pos.1))
-            .then_with(|| self.pos.0.cmp(&other.pos.0))
-            .then_with(|| self.direction.cmp(&other.direction))
+        other.heat_loss.cmp(&self.heat_loss)
     }
 }
 
@@ -106,15 +111,15 @@ mod tests {
 
     #[test]
     fn test_input_own() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input"));
+        let (part1_answer, part2_answer) = run(include_str!("../input"));
         assert_eq!(part1_answer, 1195);
-        // assert_eq!(part2_answer, 0);
+        assert_eq!(part2_answer, 1347);
     }
 
     #[test]
     fn test_input_example() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input-example"));
+        let (part1_answer, part2_answer) = run(include_str!("../input-example"));
         assert_eq!(part1_answer, 102);
-        // assert_eq!(part2_answer, 0);
+        assert_eq!(part2_answer, 94);
     }
 }
