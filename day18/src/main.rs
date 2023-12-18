@@ -1,83 +1,69 @@
 fn main() {
-    let (part1_answer, _part2_answer) = run(include_str!("../input"));
+    let (part1_answer, part2_answer) = run(include_str!("../input"));
     println!("part 1 answer: {}", part1_answer);
-    // println!("part 2 answer: {}", part2_answer);
+    println!("part 2 answer: {}", part2_answer);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 fn run(input: &'static str) -> (usize, usize) {
-    let mut plan = Vec::new();
+    let mut plan1 = Vec::new();
+    let mut plan2 = Vec::new();
     for line in input.lines() {
         let mut s = line.split_ascii_whitespace();
-        let dir = s.next().unwrap().chars().next().unwrap();
-        let num = s.next().unwrap().parse::<usize>().unwrap();
-        let colour = s
-            .next()
-            .unwrap()
-            .strip_prefix('(')
-            .unwrap()
-            .strip_suffix(')')
-            .unwrap();
-        plan.push((dir, num, colour));
+        let direction = s.next().unwrap().chars().next().unwrap();
+        let distance = s.next().unwrap().parse::<isize>().unwrap();
+        let direction = match direction {
+            'U' => Direction::Up,
+            'D' => Direction::Down,
+            'L' => Direction::Left,
+            'R' => Direction::Right,
+            _ => panic!("unknown direction: {}", direction),
+        };
+        plan1.push((direction, distance));
+
+        let colour = s.next().unwrap();
+        let distance = isize::from_str_radix(&colour[2..7], 16).unwrap();
+        let direction = usize::from_str_radix(&colour[7..8], 16).unwrap();
+        let direction = match direction {
+            0 => Direction::Right,
+            1 => Direction::Down,
+            2 => Direction::Left,
+            3 => Direction::Up,
+            _ => panic!("unknown direction: {}", direction),
+        };
+        plan2.push((direction, distance));
     }
 
-    let mut terrain = Vec::new();
-    let mut pos = (0, 0);
-    for instruction in plan.iter() {
-        match instruction.0 {
-            'U' => {
-                for _ in 0..instruction.1 {
-                    pos = (pos.0, pos.1 - 1);
-                    terrain.push(pos);
-                }
-            }
-            'D' => {
-                for _ in 0..instruction.1 {
-                    pos = (pos.0, pos.1 + 1);
-                    terrain.push(pos);
-                }
-            }
-            'L' => {
-                for _ in 0..instruction.1 {
-                    pos = (pos.0 - 1, pos.1);
-                    terrain.push(pos);
-                }
-            }
-            'R' => {
-                for _ in 0..instruction.1 {
-                    pos = (pos.0 + 1, pos.1);
-                    terrain.push(pos);
-                }
-            }
-            _ => panic!("unknown direction: {}", instruction.0),
-        }
-    }
-
-    let min_x = terrain.iter().map(|p| p.0).min().unwrap();
-    let max_x = terrain.iter().map(|p| p.0).max().unwrap();
-    let min_y = terrain.iter().map(|p| p.1).min().unwrap();
-    let max_y = terrain.iter().map(|p| p.1).max().unwrap();
-
-    // flood fill exterior area of terrain
-    let mut flood_fill = Vec::new();
-    let mut frontier = Vec::new();
-    frontier.push((min_x - 1, min_y - 1));
-    while let Some(pos) = frontier.pop() {
-        if flood_fill.contains(&pos) || terrain.contains(&pos) {
-            continue;
-        }
-        if pos.0 < min_x - 1 || pos.1 < min_y - 1 || pos.0 > max_x + 1 || pos.1 > max_y + 1 {
-            continue;
-        }
-        flood_fill.push(pos);
-        frontier.push((pos.0 - 1, pos.1));
-        frontier.push((pos.0 + 1, pos.1));
-        frontier.push((pos.0, pos.1 - 1));
-        frontier.push((pos.0, pos.1 + 1));
-    }
-
-    let part1_answer = ((max_x - min_x + 3) * (max_y - min_y + 3)) as usize - flood_fill.len();
-    let part2_answer = 0;
+    let part1_answer = lagoon_area(&plan1);
+    let part2_answer = lagoon_area(&plan2);
     (part1_answer, part2_answer)
+}
+
+fn lagoon_area(plan: &[(Direction, isize)]) -> usize {
+    // https://en.wikipedia.org/wiki/Shoelace_formula#Trapezoid_formula
+    // https://en.wikipedia.org/wiki/Pick's_theorem#Formula
+    let mut a = 0;
+    let mut x2 = 0;
+    let mut y2 = 0;
+    for (d, n) in plan {
+        let x1 = x2;
+        let y1 = y2;
+        match d {
+            Direction::Up => y2 -= n,
+            Direction::Down => y2 += n,
+            Direction::Left => x2 -= n,
+            Direction::Right => x2 += n,
+        }
+        a += (y1 + y2) * (x1 - x2) + n;
+    }
+    (a / 2 + 1) as usize
 }
 
 #[cfg(test)]
@@ -86,15 +72,15 @@ mod tests {
 
     #[test]
     fn test_input_own() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input"));
-        assert_eq!(part1_answer, 56923);
-        // assert_eq!(part2_answer, 0);
+        let (part1_answer, part2_answer) = run(include_str!("../input"));
+        assert_eq!(part1_answer, 56923, "incorrect part 1 answer");
+        assert_eq!(part2_answer, 66296566363189, "incorrect part 2 answer");
     }
 
     #[test]
     fn test_input_example() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input-example"));
-        assert_eq!(part1_answer, 62);
-        // assert_eq!(part2_answer, 0);
+        let (part1_answer, part2_answer) = run(include_str!("../input-example"));
+        assert_eq!(part1_answer, 62, "incorrect part 1 answer");
+        assert_eq!(part2_answer, 952408144115, "incorrect part 2 answer");
     }
 }
