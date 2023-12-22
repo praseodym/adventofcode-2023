@@ -32,25 +32,21 @@ fn run(input: &'static str) -> (usize, usize) {
 
     let _fallen_bricks = fall_bricks(&mut bricks);
 
-    // for brick in bricks.iter().rev() {
-    //     println!("{:?}", brick);
-    // }
-
     let mut removable_bricks = 0;
+    let mut fallen_count = 0;
     for i in 0..bricks.len() {
         let mut bricks_tmp = bricks.clone();
         bricks_tmp.remove(i);
         let fallen_bricks_tmp = fall_bricks(&mut bricks_tmp);
         if fallen_bricks_tmp.is_empty() {
-            // println!("brick[{}] can be removed", i);
             removable_bricks += 1;
         } else {
-            // println!("brick[{}] cannot be removed, bricks {:?} would fall", i, fallen_bricks_tmp);
+            fallen_count += fallen_bricks_tmp.len();
         }
     }
 
     let part1_answer = removable_bricks;
-    let part2_answer = 0;
+    let part2_answer = fallen_count;
     (part1_answer, part2_answer)
 }
 
@@ -74,7 +70,6 @@ fn fall_bricks(bricks: &mut Vec<(Coord, Coord)>) -> Vec<usize> {
         if max_j > 0 {
             let diff = max_j;
             bricks[i] = ((x1, y1, z1 - diff), (x2, y2, z2 - diff));
-            // println!("brick[{}] moved down by {} to {:?}", i, diff, bricks[i]);
             fallen_bricks.push(i);
         }
     }
@@ -87,15 +82,15 @@ mod tests {
 
     #[test]
     fn test_input_own() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input"));
+        let (part1_answer, part2_answer) = run(include_str!("../input"));
         assert_eq!(part1_answer, 421, "incorrect part 1 answer");
-        // assert_eq!(part2_answer, 0, "incorrect part 2 answer");
+        assert_eq!(part2_answer, 39247, "incorrect part 2 answer");
     }
 
     #[test]
     fn test_input_example() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input-example"));
+        let (part1_answer, part2_answer) = run(include_str!("../input-example"));
         assert_eq!(part1_answer, 5, "incorrect part 1 answer");
-        // assert_eq!(part2_answer, 0, "incorrect part 2 answer");
+        assert_eq!(part2_answer, 7, "incorrect part 2 answer");
     }
 }
