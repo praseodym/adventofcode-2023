@@ -1,3 +1,7 @@
+use ast::{Int, Real};
+use z3::ast::Ast;
+use z3::{ast, Config, Context, Solver};
+
 fn main() {
     let (part1_answer, part2_answer) = run(include_str!("../input"));
     println!("part 1 answer: {}", part1_answer);
@@ -7,7 +11,7 @@ fn main() {
 fn run(input: &'static str) -> (usize, usize) {
     let hailstones = parse_input(input);
     let part1_answer = xy_intersections(&hailstones, 200000000000000i128, 400000000000000i128);
-    let part2_answer = 0;
+    let part2_answer = solve(&hailstones);
     (part1_answer, part2_answer)
 }
 
@@ -59,6 +63,59 @@ fn xy_intersections(hailstones: &[Hailstone], area_start: i128, area_end: i128) 
     count
 }
 
+fn solve(hailstones: &[Hailstone]) -> usize {
+    // for hailstone i in 0, 1, 2 in hailstones, solve:
+    // rpx + rvx * ti = hipx + hivx * ti
+    // rpy + rvy * ti = hipy + hivy * ti
+    // rpz + rvz * ti = hipz + hivz * ti
+    // ti >= 0
+    // where (rpx, rpy, rpz) is the initial position of the rock
+
+    let cfg = Config::new();
+    let ctx = Context::new(&cfg);
+    let solver = Solver::new(&ctx);
+
+    let zero = Real::from_int(&Int::from_i64(&ctx, 0));
+
+    let rx = Real::new_const(&ctx, "rpx");
+    let ry = Real::new_const(&ctx, "rpy");
+    let rz = Real::new_const(&ctx, "rpz");
+    let rvx = Real::new_const(&ctx, "rvx");
+    let rvy = Real::new_const(&ctx, "rvy");
+    let rvz = Real::new_const(&ctx, "rvz");
+
+    for i in 0..3 {
+        let ((hpx, hpy, hpz), (hvx, hvy, hvz)) = hailstones[i];
+
+        let t = Real::new_const(&ctx, format!("t{}", i));
+        solver.assert(&t.ge(&zero));
+
+        for a in [
+            (&rx, &rvx, &hpx, &hvx),
+            (&ry, &rvy, &hpy, &hvy),
+            (&rz, &rvz, &hpz, &hvz),
+        ]
+        .iter()
+        {
+            let lhs = Real::add(&ctx, &[&a.0.clone(), &Real::mul(&ctx, &[a.1, &t])]);
+            let hp = Real::from_int(&Int::from_i64(&ctx, *a.2 as i64));
+            let hv = Real::from_int(&Int::from_i64(&ctx, *a.3 as i64));
+            let rhs = Real::add(&ctx, &[&hp, &Real::mul(&ctx, &[&hv, &t])]);
+            solver.assert(&lhs._eq(&rhs));
+        }
+    }
+
+    // solve and get the value of (rx, ry, rz)
+    if solver.check() != z3::SatResult::Sat {
+        panic!("no solution found");
+    }
+    let model = solver.get_model().unwrap();
+    let rx = model.get_const_interp(&rx).unwrap().as_real().unwrap();
+    let ry = model.get_const_interp(&ry).unwrap().as_real().unwrap();
+    let rz = model.get_const_interp(&rz).unwrap().as_real().unwrap();
+    (rx.0 + ry.0 + rz.0) as usize
+}
+
 fn line_intersection(
     (x1, y1): (i128, i128),
     (x2, y2): (i128, i128),
@@ -82,9 +139,9 @@ mod tests {
 
     #[test]
     fn test_input_own() {
-        let (part1_answer, _part2_answer) = run(include_str!("../input"));
+        let (part1_answer, part2_answer) = run(include_str!("../input"));
         assert_eq!(part1_answer, 31921, "incorrect part 1 answer");
-        // assert_eq!(part2_answer, 0, "incorrect part 2 answer");
+        assert_eq!(part2_answer, 761691907059631, "incorrect part 2 answer");
     }
 
     #[test]
@@ -92,6 +149,7 @@ mod tests {
         let hailstones = parse_input(include_str!("../input-example"));
         let part1_answer = xy_intersections(&hailstones, 7i128, 27i128);
         assert_eq!(part1_answer, 2, "incorrect part 1 answer");
-        // assert_eq!(part2_answer, 0, "incorrect part 2 answer");
+        let part2_answer = solve(&hailstones);
+        assert_eq!(part2_answer, 47, "incorrect part 2 answer");
     }
 }
