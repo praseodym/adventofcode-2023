@@ -97,10 +97,10 @@ fn solve(hailstones: &[Hailstone]) -> usize {
         ]
         .iter()
         {
-            let lhs = Real::add(&ctx, &[&a.0.clone(), &Real::mul(&ctx, &[a.1, &t])]);
+            let lhs = a.0.clone() + a.1 * &t;
             let hp = Real::from_int(&Int::from_i64(&ctx, *a.2 as i64));
             let hv = Real::from_int(&Int::from_i64(&ctx, *a.3 as i64));
-            let rhs = Real::add(&ctx, &[&hp, &Real::mul(&ctx, &[&hv, &t])]);
+            let rhs = &hp + &hv * &t;
             solver.assert(&lhs._eq(&rhs));
         }
     }
